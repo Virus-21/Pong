@@ -1,135 +1,120 @@
-# Simple Pong game
+import turtle
+import winsound
+from pong_logic import Ball, Paddle, check_paddle_collision, check_score
 
-import turtle  # Basic Graphics module
-import winsound  # For Sound
-
+# Turtle Setup
 wn = turtle.Screen()
-wn.title("Pong by K G Prajwal")  # Window title
-wn.bgcolor("black")  # Window background
-wn.setup(width=800, height=600)  # Window size
-wn.tracer(0)  # Stops window from updating - Speedup
+wn.title("Pong")
+wn.bgcolor("black")
+wn.setup(width=800, height=600)
+wn.tracer(0)
+
+# Game objects
+ball = Ball()
+paddle_a = Paddle(y=0)
+paddle_b = Paddle(y=0)
+
+# Turtle graphics for paddles/ball
+paddle_a_t = turtle.Turtle()
+paddle_a_t.speed(0)
+paddle_a_t.shape("square")
+paddle_a_t.color("white")
+paddle_a_t.shapesize(stretch_wid=5, stretch_len=1)
+paddle_a_t.penup()
+paddle_a_t.goto(-350, paddle_a.y)
+
+paddle_b_t = turtle.Turtle()
+paddle_b_t.speed(0)
+paddle_b_t.shape("square")
+paddle_b_t.color("white")
+paddle_b_t.shapesize(stretch_wid=5, stretch_len=1)
+paddle_b_t.penup()
+paddle_b_t.goto(350, paddle_b.y)
+
+ball_t = turtle.Turtle()
+ball_t.speed(0)
+ball_t.shape("square")
+ball_t.color("white")
+ball_t.penup()
+ball_t.goto(ball.x, ball.y)
 
 # Scoreboard
 score_a = 0
 score_b = 0
 
-# Paddle A
-paddle_a = turtle.Turtle()
-paddle_a.speed(0)  # Speed of animation
-paddle_a.shape("square")  # Set shape as square (default 20x20)
-paddle_a.color("white")  # Set the color
-# Make the square into rectangle
-paddle_a.shapesize(stretch_wid=5, stretch_len=1)
-paddle_a.penup()  # Don't draw continously
-paddle_a.goto(-350, 0)  # Paddle a starts at 350, left of screen
-
-# Paddle B
-paddle_b = turtle.Turtle()
-paddle_b.speed(0)
-paddle_b.shape("square")
-paddle_b.color("white")
-paddle_b.shapesize(stretch_wid=5, stretch_len=1)
-paddle_b.penup()
-paddle_b.goto(350, 0)  # Paddle a starts at 350, right of screen
-
-
-# Ball
-ball = turtle.Turtle()
-ball.speed(0)
-ball.shape("square")
-ball.color("white")
-ball.penup()
-ball.goto(0, 0)
-ball.dx = 0.5
-ball.dy = 0.5
-
-# Pen - Scoreboard
 pen = turtle.Turtle()
 pen.speed(0)
 pen.color('white')
 pen.penup()
 pen.hideturtle()
 pen.goto(0, 260)
-pen.write("Player A: 0  Player B: 0", align="center",
-          font=("Courier", 24, "normal"))
+pen.write("Player A: 0  Player B: 0", align="center", font=("Courier", 24, "normal"))
 
-
-# Functionality
+# Keyboard
 def paddle_a_up():
-    y = paddle_a.ycor()  # .ycor() return y coordinate
-    y += 20  # Move up
-    paddle_a.sety(y)
-
+    paddle_a.move_up()
+    paddle_a_t.sety(paddle_a.y)
 
 def paddle_a_down():
-    y = paddle_a.ycor()
-    y -= 20  # Move down
-    paddle_a.sety(y)
-
+    paddle_a.move_down()
+    paddle_a_t.sety(paddle_a.y)
 
 def paddle_b_up():
-    y = paddle_b.ycor()
-    y += 20
-    paddle_b.sety(y)
-
+    paddle_b.move_up()
+    paddle_b_t.sety(paddle_b.y)
 
 def paddle_b_down():
-    y = paddle_b.ycor()
-    y -= 20
-    paddle_b.sety(y)
+    paddle_b.move_down()
+    paddle_b_t.sety(paddle_b.y)
 
-
-# Keyboard binding
 wn.listen()
 wn.onkeypress(paddle_a_up, "w")
 wn.onkeypress(paddle_a_down, "s")
 wn.onkeypress(paddle_b_up, "Up")
 wn.onkeypress(paddle_b_down, "Down")
 
-
-# Main game loop
+# Game loop
 while True:
-    wn.update()  # Update screen everytime loop runs
+    wn.update()
 
-    # Move the ball
-    ball.setx(ball.xcor() + ball.dx)
-    ball.sety(ball.ycor() + ball.dy)
+    ball.move()
+    ball_t.setx(ball.x)
+    ball_t.sety(ball.y)
 
-    # Top & Bottom Border
-    if ball.ycor() > 290:
-        ball.sety(290)
-        ball.dy *= -1  # Reverse the direction of ball
+    # Bounce top/bottom
+    if ball.y > 290:
+        ball.y = 290
+        ball.bounce_y()
         winsound.PlaySound("bounce.wav", winsound.SND_ASYNC)
 
-    if ball.ycor() < -290:
-        ball.sety(-290)
-        ball.dy *= -1
+    if ball.y < -290:
+        ball.y = -290
+        ball.bounce_y()
         winsound.PlaySound("bounce.wav", winsound.SND_ASYNC)
 
-    # Left & Right Border
-    if ball.xcor() > 390:
+    # Check paddle collisions
+    if check_paddle_collision(ball, paddle_b.y, 350):
+        ball.x = 340
+        ball.bounce_x()
+        winsound.PlaySound("bounce.wav", winsound.SND_ASYNC)
+
+    if check_paddle_collision(ball, paddle_a.y, -350):
+        ball.x = -340
+        ball.bounce_x()
+        winsound.PlaySound("bounce.wav", winsound.SND_ASYNC)
+
+    # Score update
+    scorer = check_score(ball)
+    if scorer == "A":
         score_a += 1
         pen.clear()
-        pen.write("Player A: {}  Player B: {}".format(score_a, score_b), align="center",
-                  font=("Courier", 24, "normal"))  # Update score
-        ball.goto(0, 0)
-        ball.dx *= -1
+        pen.write(f"Player A: {score_a}  Player B: {score_b}", align="center", font=("Courier", 24, "normal"))
+        ball.reset_position()
+        ball_t.goto(ball.x, ball.y)
 
-    if ball.xcor() < -390:
+    if scorer == "B":
         score_b += 1
         pen.clear()
-        pen.write("Player A: {}  Player B: {}".format(score_a, score_b), align="center",
-                  font=("Courier", 24, "normal"))
-        ball.goto(0, 0)
-        ball.dx *= -1
-
-    # Bounce of the paddle
-    if (ball.xcor() > 340 and ball.xcor() < 350) and (ball.ycor() < paddle_b.ycor() + 40 and ball.ycor() > paddle_b.ycor() - 50):
-        ball.setx(340)
-        ball.dx *= -1
-        winsound.PlaySound("bounce.wav", winsound.SND_ASYNC)
-
-    if (ball.xcor() < -340 and ball.xcor() > -350) and (ball.ycor() < paddle_a.ycor() + 40 and ball.ycor() > paddle_a.ycor() - 50):
-        ball.setx(-340)
-        ball.dx *= -1
-        winsound.PlaySound("bounce.wav", winsound.SND_ASYNC)
+        pen.write(f"Player A: {score_a}  Player B: {score_b}", align="center", font=("Courier", 24, "normal"))
+        ball.reset_position()
+        ball_t.goto(ball.x, ball.y)
